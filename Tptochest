@@ -1,0 +1,167 @@
+-- Phát âm thanh khi chạy mã
+local joinSound = Instance.new("Sound", workspace)
+joinSound.SoundId = "rbxassetid://"
+joinSound.Volume = 3
+joinSound.Looped = false
+joinSound:Play()
+
+-- Hiển thị thông báo ban đầu
+game.StarterGui:SetCore("SendNotification", {
+    Title = "By: Danh Hài Đẹp Trai",
+    Text = "Dùng Ít Thôi",
+    Duration = 1000000
+})
+
+-- Gửi loạt thông báo tùy chỉnh
+local Notifications = game.ReplicatedStorage:WaitForChild("Notification")
+for _, msg in pairs({
+    "<Color=Red>Danh Hài Đẹp Trai<Color=/>",
+    "<Color=Green>Dùng Ít Thôi Nhó<Color=/>",
+    "<Color=Yellow>:)))))<Color=/>"
+}) do
+    require(Notifications).new(msg):Display()
+end
+
+-- Khởi tạo biến và hàm chính
+local Player = game.Players.LocalPlayer
+local ChestCount = 0
+local ResetThreshold = 5
+local FailedTeleports = 0
+local MaxFailedTeleports = 3
+local CollectedChests = {}
+
+local function getCharacter()
+    while not Player.Character do Player.CharacterAdded:Wait() end
+    return Player.Character:WaitForChild("HumanoidRootPart").Parent
+end
+
+local function Teleport(targetCFrame)
+    local root = getCharacter().HumanoidRootPart
+    root.CFrame = targetCFrame
+end
+
+local function getChests()
+    local chests = {}
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name:find("Chest") and obj:IsA("Part") and obj:FindFirstChild("TouchInterest") then
+            if not CollectedChests[obj] then
+                table.insert(chests, obj)
+            end
+        end
+    end
+    table.sort(chests, function(a, b)
+        return (getCharacter().HumanoidRootPart.Position - a.Position).Magnitude <
+               (getCharacter().HumanoidRootPart.Position - b.Position).Magnitude
+    end)
+    return chests
+end
+
+-- Vòng lặp chính để nhặt rương
+task.spawn(function()
+    while task.wait(0.5) do
+        local chests = getChests()
+
+        if #chests == 0 and next(CollectedChests) ~= nil then
+            CollectedChests = {}
+            print("Đã nhặt hết rương, reset danh sách để tìm rương mới!")
+        end
+
+        if #chests > 0 then
+            local targetChest = chests[1]
+            local oldPosition = getCharacter().HumanoidRootPart.Position
+            Teleport(targetChest.CFrame)
+
+            task.wait(0.5)
+
+            if not targetChest.Parent or not targetChest:FindFirstChild("TouchInterest") then
+                ChestCount = ChestCount + 1
+                FailedTeleports = 0
+                CollectedChests[targetChest] = true
+                print("Đã nhặt rương, tổng số rương: ", ChestCount)
+            else
+                FailedTeleports = FailedTeleports + 1
+                Teleport(CFrame.new(oldPosition))
+                print("Dịch chuyển thất bại, số lần thất bại: ", FailedTeleports)
+            end
+
+            if FailedTeleports >= MaxFailedTeleports then
+                print("Reset nhân vật do dịch chuyển thất bại quá nhiều!")
+                FailedTeleports = 0
+                Player.Character:BreakJoints()
+            end
+
+            if ChestCount >= ResetThreshold then
+                ChestCount = 0
+                print("Reset nhân vật sau khi nhặt đủ 5 rương!")
+                Player.Character:BreakJoints()
+            end
+        end
+    end
+end)
+
+-- Tạo và quản lý menu
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 120)
+frame.Position = UDim2.new(0.5, -150, 0.5, -60)
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BackgroundTransparency = 0.5
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+frame.Visible = false -- Ẩn menu ban đầu
+
+local titles = {
+    "DANH Hub",
+    "copy the Discord link",
+    "click here to join"
+}
+
+local yOffset = 20
+for i, title in ipairs(titles) do
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 0, 30)
+    textLabel.Position = UDim2.new(0, 10, 0, yOffset)
+    textLabel.Text = title
+    textLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextSize = 20
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.Parent = frame
+
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Thickness = 1
+    uiStroke.Color = Color3.fromRGB(0, 200, 200)
+    uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    uiStroke.Parent = textLabel
+
+    local shadowStroke = Instance.new("UIStroke")
+    shadowStroke.Thickness = 1
+    shadowStroke.Color = Color3.fromRGB(0, 100, 100)
+    shadowStroke.Transparency = 0.5
+    shadowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    shadowStroke.Parent = textLabel
+
+    yOffset = yOffset + 40
+end
+
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 50, 0, 30)
+closeButton.Position = UDim2.new(1, -60, 0, 10)
+closeButton.Text = "Close"
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 16
+closeButton.Parent = frame
+
+closeButton.MouseButton1Click:Connect(function()
+    frame.Visible = false
+end)
+
+-- Bắt sự kiện phím để mở/đóng menu
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.M then
+        frame.Visible = not frame.Visible
+    end
+end)
