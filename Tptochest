@@ -5,14 +5,14 @@ joinSound.Looped = false
 joinSound:Play()
 
 game.StarterGui:SetCore("SendNotification", {
-    Title = "By: Tuấn Anh IOS",
+    Title = "By: tấn Anh IOS",
     Text = "Địt mẹ thằng lồn",
     Duration = 1000000
 })
 
 local Notifications = game.ReplicatedStorage:WaitForChild("Notification")
 for _, msg in pairs({
-    "<Color=Red>Tuấ Anh IOS Đẹp Zai<Color=/>",
+    "<Color=Red>Tuấn Anh IOS Đẹp Zai<Color=/>",
     "<Color=Green>Cảm ơn vì đã sử dụng<Color=/>",
     "<Color=Yellow>Hạn chế dùng vì dễ bị ban<Color=/>"
 }) do
@@ -28,9 +28,9 @@ local CollectedChests = {}
 
 -- Định nghĩa các vị trí đảo (thay đổi tọa độ theo game của bạn)
 local islandPositions = {
-    CFrame.new(0, 10, 0),    -- Đảo 1
-    CFrame.new(100, 10, 0),  -- Đảo 2
-    CFrame.new(-100, 10, 0)  -- Đảo 3
+    CFrame.new(0, 10, 0),    -- Đảo 1 (thay bằng tọa độ thực tế)
+    CFrame.new(100, 10, 0),  -- Đảo 2 (thay bằng tọa độ thực tế)
+    CFrame.new(-100, 10, 0)  -- Đảo 3 (thay bằng tọa độ thực tế)
 }
 local currentIslandIndex = 1
 
@@ -74,7 +74,6 @@ local function getChests()
     return chests
 end
 
--- Hàm kiểm tra rương với nhiều lần thử sau khi chuyển đảo
 local function waitForChests(maxAttempts, waitTime)
     local attempts = 0
     local chests = {}
@@ -90,12 +89,18 @@ local function waitForChests(maxAttempts, waitTime)
     return chests
 end
 
--- Tải trước tất cả đảo để đảm bảo rương xuất hiện
+-- Tải trước tất cả đảo và kiểm tra rương
 task.spawn(function()
     for i, islandCFrame in ipairs(islandPositions) do
-        print("Tải đảo ", i)
+        print("Tải đảo ", i, " tại: ", islandCFrame.Position)
         Teleport(islandCFrame)
-        task.wait(5) -- Tăng thời gian chờ để tải rương
+        local chests = waitForChests(10, 2) -- Thử 10 lần, mỗi lần chờ 2 giây
+        if #chests == 0 then
+            print("Không tìm thấy rương trên đảo ", i)
+        else
+            print("Tìm thấy rương trên đảo ", i, " với số lượng: ", #chests)
+        end
+        task.wait(3)
     end
     currentIslandIndex = 1
     Teleport(islandPositions[currentIslandIndex])
@@ -114,8 +119,7 @@ task.spawn(function()
                 currentIslandIndex = 1
             end
             Teleport(islandPositions[currentIslandIndex])
-            -- Chờ và thử tìm rương nhiều lần
-            chests = waitForChests(5, 2) -- Thử 5 lần, mỗi lần chờ 2 giây
+            chests = waitForChests(10, 2) -- Kiểm tra rương sau khi chuyển đảo
         end
 
         if #chests > 0 then
