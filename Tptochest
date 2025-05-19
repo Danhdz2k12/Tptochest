@@ -1,18 +1,15 @@
--- Phát âm thanh khi chạy mã
 local joinSound = Instance.new("Sound", workspace)
 joinSound.SoundId = "rbxassetid://"
 joinSound.Volume = 3
 joinSound.Looped = false
 joinSound:Play()
 
--- Hiển thị thông báo ban đầu
 game.StarterGui:SetCore("SendNotification", {
     Title = "By: Tuấn Anh IOS",
     Text = "Địt mẹ thằng lồn",
     Duration = 1000000
 })
 
--- Gửi loạt thông báo tùy chỉnh
 local Notifications = game.ReplicatedStorage:WaitForChild("Notification")
 for _, msg in pairs({
     "<Color=Red>Tuấn Anh IOS Đẹp Zai<Color=/>",
@@ -22,7 +19,6 @@ for _, msg in pairs({
     require(Notifications).new(msg):Display()
 end
 
--- Khởi tạo biến và hàm chính
 local Player = game.Players.LocalPlayer
 local ChestCount = 0
 local ResetThreshold = 5
@@ -39,13 +35,24 @@ local islandPositions = {
 local currentIslandIndex = 1
 
 local function getCharacter()
-    while not Player.Character do Player.CharacterAdded:Wait() end
-    return Player.Character:WaitForChild("HumanoidRootPart").Parent
+    while not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") do
+        Player.CharacterAdded:Wait()
+        task.wait()
+    end
+    return Player.Character
 end
 
 local function Teleport(targetCFrame)
-    local root = getCharacter().HumanoidRootPart
-    root.CFrame = targetCFrame
+    local character = getCharacter()
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.CFrame = targetCFrame
+        print("Đã dịch chuyển đến: ", targetCFrame.Position)
+    else
+        print("Không tìm thấy HumanoidRootPart, thử lại...")
+        task.wait(1)
+        Teleport(targetCFrame) -- Thử lại nếu thất bại
+    end
 end
 
 local function getChests()
@@ -57,27 +64,41 @@ local function getChests()
             end
         end
     end
-    table.sort(chests, function(a, b)
-        return (getCharacter().HumanoidRootPart.Position - a.Position).Magnitude <
-               (getCharacter().HumanoidRootPart.Position - b.Position).Magnitude
-    end)
+    if #chests > 0 then
+        table.sort(chests, function(a, b)
+            return (getCharacter().HumanoidRootPart.Position - a.Position).Magnitude <
+                   (getCharacter().HumanoidRootPart.Position - b.Position).Magnitude
+        end)
+    end
+    print("Số rương tìm thấy: ", #chests)
     return chests
 end
+
+-- Tải trước tất cả đảo để đảm bảo rương xuất hiện
+task.spawn(function()
+    for i, islandCFrame in ipairs(islandPositions) do
+        print("Tải đảo ", i)
+        Teleport(islandCFrame)
+        task.wait(3) -- Tăng thời gian chờ để tải rương
+    end
+    currentIslandIndex = 1 -- Quay lại đảo đầu tiên sau khi tải
+    Teleport(islandPositions[currentIslandIndex])
+end)
 
 -- Vòng lặp chính để nhặt rương và chuyển đảo
 task.spawn(function()
     while task.wait(0.5) do
         local chests = getChests()
 
-        if #chests == 0 and next(CollectedChests) ~= nil then
-            CollectedChests = {} -- Reset danh sách rương đã nhặt
-            print("Đã nhặt hết rương trên đảo hiện tại, chuyển đảo!")
+        if #chests == 0 then
+            CollectedChests = {}
+            print("Hết rương trên đảo hiện tại, chuyển đảo!")
             currentIslandIndex = currentIslandIndex + 1
             if currentIslandIndex > #islandPositions then
-                currentIslandIndex = 1 -- Quay lại đảo đầu tiên
+                currentIslandIndex = 1
             end
             Teleport(islandPositions[currentIslandIndex])
-            task.wait(1) -- Chờ tải đảo mới
+            task.wait(3) -- Chờ lâu hơn để tải đảo mới
         end
 
         if #chests > 0 then
@@ -173,7 +194,6 @@ closeButton.MouseButton1Click:Connect(function()
     frame.Visible = false
 end)
 
--- Bắt sự kiện phím để mở/đóng menu
 game:GetService("UserInputService").InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.M then
         frame.Visible = not frame.Visible
