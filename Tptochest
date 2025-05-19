@@ -7,17 +7,17 @@ joinSound:Play()
 
 -- Hiển thị thông báo ban đầu
 game.StarterGui:SetCore("SendNotification", {
-    Title = "By: Danh Hài Đẹp Trai",
-    Text = "Dùng Ít Thôi",
+    Title = "By: Tuấn Anh IOS",
+    Text = "Địt mẹ thằng lồn",
     Duration = 1000000
 })
 
 -- Gửi loạt thông báo tùy chỉnh
 local Notifications = game.ReplicatedStorage:WaitForChild("Notification")
 for _, msg in pairs({
-    "<Color=Red>Danh Hài Đẹp Trai<Color=/>",
-    "<Color=Green>Dùng Ít Thôi Nhó<Color=/>",
-    "<Color=Yellow>:)))))<Color=/>"
+    "<Color=Red>Tuấn Anh IOS Đẹp Zai<Color=/>",
+    "<Color=Green>Cảm ơn vì đã sử dụng<Color=/>",
+    "<Color=Yellow>Hạn chế dùng vì dễ bị ban<Color=/>"
 }) do
     require(Notifications).new(msg):Display()
 end
@@ -29,6 +29,14 @@ local ResetThreshold = 5
 local FailedTeleports = 0
 local MaxFailedTeleports = 3
 local CollectedChests = {}
+
+-- Định nghĩa các vị trí đảo (thay đổi tọa độ theo game của bạn)
+local islandPositions = {
+    CFrame.new(0, 10, 0),    -- Đảo 1
+    CFrame.new(100, 10, 0),  -- Đảo 2
+    CFrame.new(-100, 10, 0)  -- Đảo 3
+}
+local currentIslandIndex = 1
 
 local function getCharacter()
     while not Player.Character do Player.CharacterAdded:Wait() end
@@ -56,14 +64,20 @@ local function getChests()
     return chests
 end
 
--- Vòng lặp chính để nhặt rương
+-- Vòng lặp chính để nhặt rương và chuyển đảo
 task.spawn(function()
     while task.wait(0.5) do
         local chests = getChests()
 
         if #chests == 0 and next(CollectedChests) ~= nil then
-            CollectedChests = {}
-            print("Đã nhặt hết rương, reset danh sách để tìm rương mới!")
+            CollectedChests = {} -- Reset danh sách rương đã nhặt
+            print("Đã nhặt hết rương trên đảo hiện tại, chuyển đảo!")
+            currentIslandIndex = currentIslandIndex + 1
+            if currentIslandIndex > #islandPositions then
+                currentIslandIndex = 1 -- Quay lại đảo đầu tiên
+            end
+            Teleport(islandPositions[currentIslandIndex])
+            task.wait(1) -- Chờ tải đảo mới
         end
 
         if #chests > 0 then
@@ -109,10 +123,10 @@ frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 frame.BackgroundTransparency = 0.5
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
-frame.Visible = false -- Ẩn menu ban đầu
+frame.Visible = false
 
 local titles = {
-    "DANH Hub",
+    "SKULL Hub",
     "copy the Discord link",
     "click here to join"
 }
