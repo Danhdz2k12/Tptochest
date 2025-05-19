@@ -12,7 +12,7 @@ game.StarterGui:SetCore("SendNotification", {
 
 local Notifications = game.ReplicatedStorage:WaitForChild("Notification")
 for _, msg in pairs({
-    "<Color=Red>Tuấn Anh IOS Đẹp Zai<Color=/>",
+    "<Color=Red>Tuấ Anh IOS Đẹp Zai<Color=/>",
     "<Color=Green>Cảm ơn vì đã sử dụng<Color=/>",
     "<Color=Yellow>Hạn chế dùng vì dễ bị ban<Color=/>"
 }) do
@@ -51,7 +51,7 @@ local function Teleport(targetCFrame)
     else
         print("Không tìm thấy HumanoidRootPart, thử lại...")
         task.wait(1)
-        Teleport(targetCFrame) -- Thử lại nếu thất bại
+        Teleport(targetCFrame)
     end
 end
 
@@ -74,14 +74,30 @@ local function getChests()
     return chests
 end
 
+-- Hàm kiểm tra rương với nhiều lần thử sau khi chuyển đảo
+local function waitForChests(maxAttempts, waitTime)
+    local attempts = 0
+    local chests = {}
+    while #chests == 0 and attempts < maxAttempts do
+        chests = getChests()
+        if #chests > 0 then
+            break
+        end
+        print("Chưa tìm thấy rương, thử lại lần ", attempts + 1)
+        task.wait(waitTime)
+        attempts = attempts + 1
+    end
+    return chests
+end
+
 -- Tải trước tất cả đảo để đảm bảo rương xuất hiện
 task.spawn(function()
     for i, islandCFrame in ipairs(islandPositions) do
         print("Tải đảo ", i)
         Teleport(islandCFrame)
-        task.wait(3) -- Tăng thời gian chờ để tải rương
+        task.wait(5) -- Tăng thời gian chờ để tải rương
     end
-    currentIslandIndex = 1 -- Quay lại đảo đầu tiên sau khi tải
+    currentIslandIndex = 1
     Teleport(islandPositions[currentIslandIndex])
 end)
 
@@ -98,7 +114,8 @@ task.spawn(function()
                 currentIslandIndex = 1
             end
             Teleport(islandPositions[currentIslandIndex])
-            task.wait(3) -- Chờ lâu hơn để tải đảo mới
+            -- Chờ và thử tìm rương nhiều lần
+            chests = waitForChests(5, 2) -- Thử 5 lần, mỗi lần chờ 2 giây
         end
 
         if #chests > 0 then
